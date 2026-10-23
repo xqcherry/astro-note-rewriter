@@ -1,3 +1,3 @@
 interface:
   display_name: "Astro Note Rewriter"
-  short_description: "Polish Astro posts and project drafts"
+  short_description: "Rewrite notes into Astro content"

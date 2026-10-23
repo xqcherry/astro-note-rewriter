@@ -1,51 +1,73 @@
 ---
 name: astro-note-rewriter
-description: Turn rough personal Markdown notes or project drafts into polished Astro posts or project pages, with correct frontmatter, semantic slugs, preserved code/media, and placement in the right content collection.
+description: Turn hand-written Markdown notes into Astro content collections — technical posts, 动态 (dynamic), and 每日收获 (diary) — with schema-accurate frontmatter, semantic slugs, and correctly hosted images. Use when publishing, migrating, or tidying notes under src/content/, or when the user says 改写笔记, 整理笔记, 发动态, or 写每日收获.
 ---
 
 # Astro Note Rewriter
 
-Turn rough writing into well-structured Astro content without changing its intent. This skill has two content modes: article mode for technical notes and project mode for unformatted project drafts. Project mode focuses on content polishing and placement; it does not invent or implement a new project-page UI unless the user separately asks for that.
+Convert a note into publishable content while keeping its meaning. Structure and accuracy matter; volume does not. Never add commentary, claims, or closing lines the source does not contain.
 
-## Before editing
+## 1. Establish ground truth
 
-- Inspect the destination collection schema, existing posts, Markdown extensions, and the source notes before deciding the frontmatter or formatting.
-- Determine whether the source is an article or a project description. For project mode, inspect the project collection schema, existing project entries, project detail route, and its card/list conventions before writing the file.
-- Inspect the repository’s content directories and naming conventions so the finished file is placed in the collection that actually renders the requested page. Do not leave the polished result only beside the source draft.
-- Identify all embedded images, diagrams, local links, and code blocks. Move required media into the destination project and keep every reference valid.
-- Treat a note with no meaningful body as a draft to flag rather than publish an empty article.
+Read these before writing — they override this skill when they disagree:
 
-## Rewrite one article at a time
+1. `src/content/config.ts` (or `src/content.config.ts`) — authoritative schemas: required fields, defaults, types.
+2. One recent file in the target collection — match its conventions, not an idealized template.
+3. The source note in full, including image links and code fences.
 
-For every note, individually:
+If neither content-config file exists, stop and ask which project and collection to target; the paths below are this blog's defaults, not a universal layout.
 
-1. Give it a specific, searchable title that retains the original question or subject.
-2. Write a concise description, assign a focused category and a small set of meaningful tags, and use a lowercase semantic slug filename. Do not retain opaque names such as `1.md` or `note.md`.
-3. Reorganize prose into a clear reading flow: conclusion or context, main explanation, comparisons or steps where useful, and concise follow-up questions. Use headings, tables, callouts, diagrams, and language-tagged code fences when they make the original material easier to scan.
-4. Preserve all original questions, material conclusions, caveats, and media. Rephrase for clarity and fill obvious structural gaps, but do not introduce claims that conflict with the source.
+## 2. Route the note
 
-## Rewrite a project draft
+| Source note | Collection | Destination | Reference |
+| --- | --- | --- | --- |
+| Long-form, technical, sections or code | `posts` | `src/content/posts/<topic-dir>/<slug>.md` | [references/posts.md](references/posts.md) |
+| Short first-person moment | `dynamic` | `src/content/dynamic/YYYY-MM-DD-<slug>.md` | [references/dynamic.md](references/dynamic.md) |
+| One day's list of work or lessons | `diary` | `src/content/diary/YYYY-MM-DD.md` | [references/diary.md](references/diary.md) |
+| Genuinely ambiguous | — | — | Ask; do not guess. |
 
-When the user provides a rough project description without caring about Markdown layout, frontmatter, or presentation:
+`<topic-dir>` is an existing folder under `src/content/posts/` (e.g. `interview/Redis`, `algorithms`, `cryptography`). It is **not** the frontmatter `category`: folders group by subject, `category` labels the genre (`后端八股`, `算法题解`, ...). Reuse a matching folder; create one only for a new subject.
 
-1. Read the draft as source material, identify the project’s purpose, problem, solution, key features, technology, current status, links, and notable limitations, and keep uncertain or missing details out rather than guessing.
-2. Give it a clear project title, concise description, semantic lowercase slug, focused tags, and an appropriate status. Derive these from the draft and repository evidence; do not manufacture metrics, users, dates, features, or links.
-3. Organize the body for a project detail page. Prefer a useful sequence such as overview, motivation/problem, implementation, features, usage, lessons learned, and future work, but omit sections that the draft does not support.
-4. Preserve technical names, commands, code, API shapes, tradeoffs, and stated limitations. Improve wording and hierarchy, not the underlying implementation claims.
-5. Write the finished file into the project collection directory using the destination schema. Keep the original rough draft untouched unless the user asks for replacement. If the project has local images or media, place them according to the repository’s project-content convention and update relative references.
-6. Use the project page’s existing fields and rendering behavior. Do not add new UI, styles, components, or dependencies merely to make the content fit; report missing infrastructure separately.
-7. Leave genuinely incomplete projects as drafts when the source lacks enough content for a truthful public page, and explain what information is missing.
+## 3. Handle media first
 
-## Code and factual boundaries
+Images are hosted on MinIO only; `public/images/` is legacy. Follow [references/images.md](references/images.md). Invariant: every image lives in exactly one place — after upload, no local copy remains — and every reference is a full `https://` URL.
 
-- Preserve code blocks verbatim by default: do not change algorithms, identifiers, implementation choices, or formatting inside a code block. Rewrite code only when the user explicitly asks for it.
-- Keep commands and configuration snippets intact unless the user authorizes an operational update. Never carry secrets, private hostnames, IP addresses, tokens, or internal project identifiers into a public post; replace or remove them only after explaining the handling when needed.
-- For current, version-sensitive technical facts introduced during rewriting, verify them using authoritative documentation. Clearly separate verified additions from the author’s original notes.
+## 4. Write one note at a time
 
-## Validation and handoff
+For each note:
 
-- Validate every rewritten post against the Astro content schema and run the project’s relevant check before handoff.
-- Validate every rewritten project entry against its project collection schema, confirm its generated project route, and check that card metadata, detail content, links, and local media resolve correctly.
-- Confirm that generated routes, image paths, and Markdown directives work.
-- When asked to commit, stage only fully rewritten articles and their required assets. Do not include unfinished migrations or unrelated workspace changes.
-- Report which notes were completed, the final slugs, validation result, and anything intentionally left as a draft.
+1. Derive the date from the filename or the source; never invent one.
+2. Choose a lowercase ASCII hyphenated slug that describes the subject (`redis-delay-queue`, not `1` or a pinyin title). Keep the existing slug when editing an existing file.
+3. Write frontmatter from the schema. Omit optional fields you cannot ground in the source — do not invent `location`, `series`, `image`, or diary `title`.
+4. Write the body per the type reference, preserving every original question, conclusion, caveat, and item order. Fill structural gaps; add no new claims.
+5. Validate and report.
+
+## Hard rules
+
+- Code, commands, and config stay verbatim. Rewrite them only when explicitly asked.
+- Never publish secrets, private hostnames, IPs, tokens, or internal identifiers.
+- Never overwrite diary entries; append and continue the numbering.
+- Process notes individually, even in a batch, so one failure does not cascade.
+- If a note has no usable body, keep it `draft: true` instead of publishing filler.
+- For facts you introduce while rewriting, verify against authoritative docs; leave the author's original claims untouched.
+
+## Validate
+
+From the repo root:
+
+```bash
+pnpm check    # schema and type errors
+pnpm build    # routes, assets, build-time failures (when files or images were added)
+```
+
+Local image references are legacy and must not appear in new or rewritten content:
+
+```bash
+grep -rnE '(\]\(|src: |image: )/images/' src/content/{posts,dynamic,diary}
+```
+
+Any hit in an entry you touched means the media step is unfinished. Hits in untouched entries are fine until the user requests the full migration.
+
+## Report
+
+After finishing, give a compact table: source note → collection → destination path → images (hosted/linked) → validation result. Flag drafts and unresolved media explicitly.
